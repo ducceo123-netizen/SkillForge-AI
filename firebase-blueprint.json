@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile information and settings",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "fullName": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "orgId": { "type": "string" },
+        "profileImage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email"]
+    },
+    "InputField": {
+      "title": "InputField",
+      "description": "A variable field for a skill",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "label": { "type": "string" },
+        "type": { "type": "string", "enum": ["short_text", "long_text", "select"] },
+        "placeholder": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "required": { "type": "boolean" }
+      }
+    },
+    "Skill": {
+      "title": "Skill",
+      "description": "An AI editorial skill",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "systemPromptTemplate": { "type": "string" },
+        "variables": { "type": "array", "items": { "$ref": "#/entities/InputField" } },
+        "model": { "type": "string" },
+        "temperature": { "type": "number" },
+        "runCount": { "type": "number" },
+        "ownerId": { "type": "string" },
+        "orgId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "orgId"]
+    },
+    "BrandProfile": {
+      "title": "BrandProfile",
+      "description": "Editorial guidelines for a specific brand",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "guidelines": { "type": "string" },
+        "isDefault": { "type": "boolean" },
+        "ownerId": { "type": "string" },
+        "orgId": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "orgId"]
+    },
+    "Execution": {
+      "title": "Execution",
+      "description": "History of skill execution",
+      "type": "object",
+      "properties": {
+        "skillId": { "type": "string" },
+        "inputData": { "type": "object" },
+        "output": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["adopted", "edited", "pending"] },
+        "ownerId": { "type": "string" },
+        "orgId": { "type": "string" }
+      },
+      "required": ["skillId", "orgId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Store user profiles"
+    },
+    "/skills/{skillId}": {
+      "schema": "Skill",
+      "description": "Store editorial skills"
+    },
+    "/brand_profiles/{profileId}": {
+      "schema": "BrandProfile",
+      "description": "Store brand profiles"
+    },
+    "/executions/{executionId}": {
+      "schema": "Execution",
+      "description": "Store execution history"
+    }
+  }
+}

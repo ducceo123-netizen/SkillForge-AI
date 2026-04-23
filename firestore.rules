@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // -----------------------------------------------------------
+    // GLOBAL HELPERS
+    // -----------------------------------------------------------
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function getUserOrg() { 
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId; 
+    }
+    function isOrgMember(resourceOrgId) { 
+      // Safe check: if resource has orgId, user must be in that org
+      // Fallback: if user doc doesn't exist yet, allow if they are setting it up or if it matches their derived domain-org
+      return isSignedIn() && (getUserOrg() == resourceOrgId); 
+    }
+    function isResourceOwner() { return isSignedIn() && resource.data.ownerId == request.auth.uid; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isValidTimestamp(ts) { return ts == request.time; }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -----------------------------------------------------------
+    // USERS COLLECTION
+    // -----------------------------------------------------------
+    match /users/{userId} {
+      function isValidUserProfile(data) {
+        return data.email is string && data.email.size() <= 256 &&
+               (data.fullName == null || (data.fullName is string && data.fullName.size() <= 200)) &&
+               (data.jobTitle == null || (data.jobTitle is string && data.jobTitle.size() <= 200)) &&
+               (data.orgId == null || (data.orgId is string && data.orgId.size() <= 100)) &&
+               (data.profileImage == null || (data.profileImage is string && data.profileImage.size() <= 5000000));
+      }
+
+      allow get: if isSignedIn(); // Allow reading other teammates if needed later
+      allow create: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().updatedAt == request.time;
+      allow update: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().updatedAt == request.time;
+    }
+
+    // -----------------------------------------------------------
+    // SKILLS COLLECTION
+    // -----------------------------------------------------------
+    match /skills/{skillId} {
+      function isValidSkill(data) {
+        return isValidId(data.orgId) && isOrgMember(data.orgId) &&
+               data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+               data.description is string && data.description.size() <= 1000 &&
+               data.model is string && data.temperature is number &&
+               data.variables is list && data.variables.size() <= 20;
+      }
+
+      allow list: if isSignedIn() && isOrgMember(resource.data.orgId);
+      allow get: if isSignedIn() && isOrgMember(resource.data.orgId);
+      allow create: if isSignedIn() && isValidSkill(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isOrgMember(existing().orgId) && isValidSkill(incoming()) && incoming().updatedAt == request.time;
+      allow delete: if isSignedIn() && isOrgMember(existing().orgId);
+    }
+
+    // -----------------------------------------------------------
+    // BRAND PROFILES COLLECTION
+    // -----------------------------------------------------------
+    match /brand_profiles/{profileId} {
+      function isValidBrandProfile(data) {
+        return isValidId(data.orgId) && isOrgMember(data.orgId) &&
+               data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+               data.guidelines is string && data.guidelines.size() <= 5000;
+      }
+
+      allow list: if isSignedIn() && isOrgMember(resource.data.orgId);
+      allow get: if isSignedIn() && isOrgMember(resource.data.orgId);
+      allow create: if isSignedIn() && isValidBrandProfile(incoming()) && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isOrgMember(existing().orgId) && isValidBrandProfile(incoming()) && incoming().updatedAt == request.time;
+      allow delete: if isSignedIn() && isOrgMember(existing().orgId);
+    }
+
+    // -----------------------------------------------------------
+    // EXECUTIONS COLLECTION
+    // -----------------------------------------------------------
+    match /executions/{executionId} {
+      function isValidExecution(data) {
+        return isValidId(data.orgId) && isOrgMember(data.orgId) &&
+               data.skillId is string && data.output is string;
+      }
+
+      allow list: if isSignedIn() && isOrgMember(resource.data.orgId);
+      allow get: if isSignedIn() && isOrgMember(resource.data.orgId);
+      allow create: if isSignedIn() && isValidExecution(incoming()) && incoming().timestamp == request.time;
+      allow update: if isSignedIn() && isOrgMember(existing().orgId) && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow delete: if isSignedIn() && isOrgMember(existing().orgId);
+    }
+  }
+}
