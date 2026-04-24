@@ -57,4 +57,11 @@ export type Execution = {
   status: 'adopted' | 'edited' | 'pending';
   ownerId?: string;
   orgId?: string;
+  metadata?: {
+    model?: string;
+    profilesUsed?: string[];
+    temperature?: number;
+    wordCount?: number;
+    readTime?: number;
+  };
 };

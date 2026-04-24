@@ -165,11 +165,45 @@ export default function HistoryPage({ historyData, searchQuery = '', onDeleteExe
                   </div>
                 </div>
 
+                {selectedExecution.metadata && (
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-charcoal-warm uppercase tracking-widest border-b border-border-warm pb-2">Editorial Insights</h3>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="bg-ivory/50 p-4 rounded-xl border border-border-cream">
+                        <p className="text-[9px] uppercase font-bold text-stone-gray mb-1">Model</p>
+                        <p className="text-xs font-medium text-near-black text-xs">{selectedExecution.metadata.model}</p>
+                      </div>
+                      <div className="bg-ivory/50 p-4 rounded-xl border border-border-cream">
+                        <p className="text-[9px] uppercase font-bold text-stone-gray mb-1">Word Count</p>
+                        <p className="text-xs font-serif font-bold text-terracotta">{selectedExecution.metadata.wordCount} words</p>
+                      </div>
+                      <div className="bg-ivory/50 p-4 rounded-xl border border-border-cream">
+                        <p className="text-[9px] uppercase font-bold text-stone-gray mb-1">Reading Time</p>
+                        <p className="text-xs font-serif font-bold text-terracotta">~{selectedExecution.metadata.readTime} min</p>
+                      </div>
+                      <div className="bg-ivory/50 p-4 rounded-xl border border-border-cream">
+                        <p className="text-[9px] uppercase font-bold text-stone-gray mb-1">Temperature</p>
+                        <p className="text-xs font-medium text-near-black">{selectedExecution.metadata.temperature}</p>
+                      </div>
+                    </div>
+                    {selectedExecution.metadata.profilesUsed && selectedExecution.metadata.profilesUsed.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {selectedExecution.metadata.profilesUsed.map(p => (
+                          <span key={p} className="text-[9px] bg-parchment text-charcoal-warm px-2 py-0.5 rounded border border-border-warm font-medium">
+                            Profile: {p}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-4 flex-1">
                   <h3 className="text-xs font-bold text-charcoal-warm uppercase tracking-widest border-b border-border-warm pb-2">Output Result</h3>
-                  <div className="bg-ivory p-8 rounded-xl border border-border-cream shadow-sm font-serif text-lg leading-relaxed text-charcoal-warm relative group whitespace-pre-wrap">
-                    {selectedExecution.output}
-                  </div>
+                  <div 
+                    className="bg-ivory p-8 rounded-xl border border-border-cream shadow-sm font-serif text-lg leading-relaxed text-charcoal-warm relative group whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{ __html: selectedExecution.output }}
+                  />
                 </div>
               </motion.div>
             </AnimatePresence>

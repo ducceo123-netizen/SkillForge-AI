@@ -7,6 +7,7 @@ import {
   RefreshCw, 
   CheckCircle2,
   FileEdit,
+  Clock,
   Sparkles,
   Info,
   Layers,
@@ -83,13 +84,26 @@ export default function ExecutionPlayground({ skill, profiles, onBack, onSaveExe
   const handleSave = () => {
     const finalContent = editorRef.current ? editorRef.current.innerHTML : output;
     if (!finalContent) return;
+    
+    // Calculate simple stats
+    const textOnly = editorRef.current ? editorRef.current.innerText : output;
+    const words = textOnly.trim() ? textOnly.trim().split(/\s+/).length : 0;
+    const readTime = Math.max(1, Math.ceil(words / 200));
+
     const execution: Execution = {
       id: Math.random().toString(36).substr(2, 9),
       skillId: skill.id,
       inputData: { ...inputData },
       output: finalContent,
       timestamp: new Date().toLocaleTimeString(),
-      status: 'pending'
+      status: 'pending',
+      metadata: {
+        model: skill.model || 'gemini-3-flash-preview',
+        profilesUsed: selectedProfiles.map(p => p.name),
+        temperature: skill.temperature,
+        wordCount: words,
+        readTime: readTime
+      }
     };
     onSaveExecution(execution);
     setIsSaved(true);
@@ -296,6 +310,36 @@ export default function ExecutionPlayground({ skill, profiles, onBack, onSaveExe
 
           {/* Output Content */}
           <div className="flex-1 relative overflow-hidden flex flex-col">
+            {/* Insights Bar */}
+            <AnimatePresence>
+              {output && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  className="bg-ivory border-b border-border-cream px-6 py-2 flex items-center gap-6"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Type size={12} className="text-stone-gray" />
+                    <span className="text-[10px] font-bold text-stone-gray uppercase tracking-widest">
+                      {output.replace(/<[^>]*>/g, '').trim().split(/\s+/).length} Words
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={12} className="text-stone-gray" />
+                    <span className="text-[10px] font-bold text-stone-gray uppercase tracking-widest">
+                      ~{Math.max(1, Math.ceil(output.replace(/<[^>]*>/g, '').trim().split(/\s+/).length / 200))} Min Read
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <Sparkles size={12} className="text-terracotta" />
+                    <span className="text-[10px] font-bold text-terracotta uppercase tracking-widest">
+                      Generated via {skill.model || 'Gemini 3'}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div 
               ref={editorRef}
               contentEditable={!isGenerating}

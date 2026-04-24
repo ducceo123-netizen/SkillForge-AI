@@ -1,7 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
 import { Skill, BrandProfile } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Use VITE_ prefix for client-side environment variables in production (e.g. Vercel)
+// Use process.env for AI Studio environment
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '');
+
+if (!apiKey) {
+  console.warn("GEMINI_API_KEY is missing. AI features will not work. Please check your environment variables.");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key' });
 
 export async function generateSkillContent(
   skill: Skill, 

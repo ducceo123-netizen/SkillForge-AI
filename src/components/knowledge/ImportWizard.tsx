@@ -21,8 +21,9 @@ interface ImportWizardProps {
 
 export default function ImportWizard({ onClose, onImport }: ImportWizardProps) {
   const [step, setStep] = useState<'source' | 'processing' | 'done'>('source');
-  const [source, setSource] = useState<'obsidian' | 'lark' | null>(null);
+  const [source, setSource] = useState<'obsidian' | 'lark' | 'google' | null>(null);
   const [larkUrl, setLarkUrl] = useState('');
+  const [googleUrl, setGoogleUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
 
   const handleObsidianImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,6 +86,36 @@ export default function ImportWizard({ onClose, onImport }: ImportWizardProps) {
       setStep('done');
       setIsSyncing(false);
     }, 2500);
+  };
+
+  const handleGoogleSync = () => {
+    if (!googleUrl) return;
+    setStep('processing');
+    setIsSyncing(true);
+
+    setTimeout(() => {
+      const newProfile: BrandProfile = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: 'Google Drive Asset',
+        guidelines: `Integrated with Google Drive folder at ${googleUrl}. AI is now using your shared documents for style and factual reference.`,
+        attributes: ['Workspace Native', 'Shared Drive', 'Cloud Asset'],
+        knowledgeFiles: [
+          {
+            id: 'google-1',
+            name: 'Shared Workspace Ref',
+            type: 'application/google-doc',
+            size: 0,
+            createdAt: new Date().toISOString()
+          }
+        ],
+        updatedAt: new Date().toISOString(),
+        isDefault: false,
+        linkedSkills: 0
+      };
+      onImport(newProfile);
+      setStep('done');
+      setIsSyncing(false);
+    }, 2000);
   };
 
   const handleObsidianDirectConnect = async () => {
@@ -205,31 +236,44 @@ Vault Structure: Linked ${dirHandle.name}/`,
                 exit={{ opacity: 0, x: 20 }}
                 className="space-y-8"
               >
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-3 gap-4">
                   <button 
                     onClick={() => setSource('obsidian')}
-                    className={`p-6 rounded-2xl border transition-all text-left group ${
+                    className={`p-4 rounded-2xl border transition-all text-left group ${
                       source === 'obsidian' ? 'border-terracotta bg-parchment shadow-md' : 'border-border-cream hover:border-border-warm bg-ivory shadow-sm'
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 mb-4 group-hover:scale-110 transition-transform">
-                      <Download size={20} />
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 mb-3 group-hover:scale-110 transition-transform">
+                      <Download size={16} />
                     </div>
-                    <h3 className="text-lg font-serif text-near-black mb-1">Obsidian</h3>
-                    <p className="text-[10px] text-stone-gray leading-relaxed italic">Import or Link your local Vault.</p>
+                    <h3 className="text-sm font-serif text-near-black mb-1">Obsidian</h3>
+                    <p className="text-[8px] text-stone-gray leading-tight italic">Local Vault Link.</p>
                   </button>
 
                   <button 
                     onClick={() => setSource('lark')}
-                    className={`p-6 rounded-2xl border transition-all text-left group ${
+                    className={`p-4 rounded-2xl border transition-all text-left group ${
                       source === 'lark' ? 'border-terracotta bg-parchment shadow-md' : 'border-border-cream hover:border-border-warm bg-ivory shadow-sm'
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-4 group-hover:scale-110 transition-transform">
-                      <Globe size={20} />
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 mb-3 group-hover:scale-110 transition-transform">
+                      <Globe size={16} />
                     </div>
-                    <h3 className="text-lg font-serif text-near-black mb-1">Lark Suite</h3>
-                    <p className="text-[10px] text-stone-gray leading-relaxed italic">Sync real-time knowledge from Lark Docs.</p>
+                    <h3 className="text-sm font-serif text-near-black mb-1">Lark Suite</h3>
+                    <p className="text-[8px] text-stone-gray leading-tight italic">Cloud Sync.</p>
+                  </button>
+
+                  <button 
+                    onClick={() => setSource('google')}
+                    className={`p-4 rounded-2xl border transition-all text-left group ${
+                      source === 'google' ? 'border-terracotta bg-parchment shadow-md' : 'border-border-cream hover:border-border-warm bg-ivory shadow-sm'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-600 mb-3 group-hover:scale-110 transition-transform">
+                      <FileText size={16} />
+                    </div>
+                    <h3 className="text-sm font-serif text-near-black mb-1">G-Drive</h3>
+                    <p className="text-[8px] text-stone-gray leading-tight italic">Google Docs.</p>
                   </button>
                 </div>
 
@@ -290,6 +334,34 @@ Vault Structure: Linked ${dirHandle.name}/`,
                       className="w-full py-4 bg-near-black text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg hover:bg-opacity-90 transition-all disabled:opacity-30 flex items-center justify-center gap-2"
                     >
                       Connect & Sync <ArrowRight size={16} />
+                    </button>
+                  </motion.div>
+                )}
+
+                {source === 'google' && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold text-stone-gray uppercase tracking-widest">Google Drive Folder URL</label>
+                       <input 
+                        type="url" 
+                        placeholder="https://drive.google.com/drive/folders/..."
+                        value={googleUrl}
+                        onChange={(e) => setGoogleUrl(e.target.value)}
+                        className="w-full bg-parchment border border-border-warm rounded-xl px-4 py-4 text-sm focus:ring-1 focus:ring-terracotta outline-none shadow-inner"
+                       />
+                    </div>
+                    <div className="flex items-center gap-3 bg-red-50/50 p-4 rounded-xl border border-red-100 italic text-red-600">
+                      <Info size={16} className="shrink-0" />
+                      <p className="text-[10px] font-medium leading-relaxed">
+                        Authorize SkillForge to access this folder. We will automatically index all Google Docs within for your AI context.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={handleGoogleSync}
+                      disabled={!googleUrl}
+                      className="w-full py-4 bg-near-black text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg hover:bg-opacity-90 transition-all disabled:opacity-30 flex items-center justify-center gap-2"
+                    >
+                      Authorize & Link <ArrowRight size={16} />
                     </button>
                   </motion.div>
                 )}

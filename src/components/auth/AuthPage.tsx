@@ -35,8 +35,16 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
         onLogin(result.user.email);
       }
     } catch (err: any) {
-      console.error(err);
-      setError('Google sign-in failed. Please try again.');
+      console.error("Firebase Auth Error:", err);
+      let msg = 'Google sign-in failed.';
+      if (err.code === 'auth/popup-blocked') {
+        msg = 'Popup blocked by browser. Please allow popups for this site.';
+      } else if (err.code === 'auth/unauthorized-domain') {
+        msg = 'This domain is not authorized in Firebase Console. Please add your current domain to Authorized Domains.';
+      } else {
+        msg = `Login error: ${err.message || 'Please check your connection.'}`;
+      }
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
