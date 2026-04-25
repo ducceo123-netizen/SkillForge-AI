@@ -3,28 +3,37 @@ import { Skill, BrandProfile } from '../types';
 
 // Use VITE_ prefix for client-side environment variables in production (e.g. Vercel)
 // Use process.env for AI Studio environment
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '') || 'AIzaSyBnWfSD44xPIm3LXPf1UZaRZkHqCOjW0jo';
+const DEFAULT_KEY = 'AIzaSyBnWfSD44xPIm3LXPf1UZaRZkHqCOjW0jo';
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '') || DEFAULT_KEY;
 
-if (!apiKey || apiKey === 'AIzaSyBnWfSD44xPIm3LXPf1UZaRZkHqCOjW0jo') {
-  console.log("Using hardcoded API Key for testing. Remember to remove this before production.");
+if (!apiKey || apiKey === DEFAULT_KEY) {
+  console.log("Using API Key:", apiKey === DEFAULT_KEY ? "HARDCODED_TEST_KEY" : "PROVIDED_ENV_KEY");
 }
 
-const ai = new GoogleGenAI({ apiKey: apiKey });
+let ai: GoogleGenAI;
+try {
+  ai = new GoogleGenAI({ apiKey: apiKey });
+} catch (e) {
+  console.error("Failed to initialize GoogleGenAI:", e);
+  // Fallback to dummy to avoid crash on load
+  ai = new GoogleGenAI({ apiKey: 'dummy' });
+}
 
 export async function generateSkillContent(
   skill: Skill, 
   inputs: Record<string, string>, 
   brandProfiles?: BrandProfile | BrandProfile[]
 ) {
-  let userPrompt = skill.systemPromptTemplate || '';
-  
-  Object.entries(inputs).forEach(([key, value]) => {
-    userPrompt = userPrompt.replace(new RegExp(`{{${key}}}`, 'g'), value);
-  });
+  try {
+    let userPrompt = skill.systemPromptTemplate || '';
+    
+    Object.entries(inputs).forEach(([key, value]) => {
+      userPrompt = userPrompt.replace(new RegExp(`{{${key}}}`, 'g'), value);
+    });
 
-  const profiles = brandProfiles ? (Array.isArray(brandProfiles) ? brandProfiles : [brandProfiles]) : [];
+    const profiles = brandProfiles ? (Array.isArray(brandProfiles) ? brandProfiles : [brandProfiles]) : [];
 
-  const systemInstruction = `
+    const systemInstruction = `
 ROLE: You are an expert AI Editorial Assistant.
 GOAL: Transform the provided input into a high-quality outcome based on the specific instructions below.
 
@@ -49,18 +58,23 @@ STRICT OUTPUT RULES:
 ${Object.entries(inputs).map(([key, val]) => `${key.toUpperCase()}: ${val}`).join('\n')}
 `.trim();
 
-  const contents = userPrompt.trim() || "Please process the provided input data according to your instructions and brand voice.";
+    const contents = userPrompt.trim() || "Please process the provided input data according to your instructions and brand voice.";
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents,
-    config: {
-      systemInstruction,
-      temperature: skill.temperature || 0.7,
-    },
-  });
+    console.log("Calling Gemini with model:", skill.model || "gemini-3-flash-preview");
+    const response = await ai.models.generateContent({
+      model: skill.model || "gemini-3-flash-preview",
+      contents,
+      config: {
+        systemInstruction,
+        temperature: skill.temperature || 0.7,
+      },
+    });
 
-  return response.text;
+    return response.text;
+  } catch (error: any) {
+    console.error("Gemini API Error (Fixed):", error);
+    throw error;
+  }
 }
 
 export async function* generateSkillContentStream(
@@ -68,17 +82,18 @@ export async function* generateSkillContentStream(
   inputs: Record<string, string>, 
   brandProfiles?: BrandProfile | BrandProfile[]
 ) {
-  let userPrompt = skill.systemPromptTemplate || '';
-  
-  // Replace variables in template
-  Object.entries(inputs).forEach(([key, value]) => {
-    userPrompt = userPrompt.replace(new RegExp(`{{${key}}}`, 'g'), value);
-  });
+  try {
+    let userPrompt = skill.systemPromptTemplate || '';
+    
+    // Replace variables in template
+    Object.entries(inputs).forEach(([key, value]) => {
+      userPrompt = userPrompt.replace(new RegExp(`{{${key}}}`, 'g'), value);
+    });
 
-  const profiles = brandProfiles ? (Array.isArray(brandProfiles) ? brandProfiles : [brandProfiles]) : [];
+    const profiles = brandProfiles ? (Array.isArray(brandProfiles) ? brandProfiles : [brandProfiles]) : [];
 
-  // Construct a robust system instruction
-  const systemInstruction = `
+    // Construct a robust system instruction
+    const systemInstruction = `
 ROLE: You are an expert AI Editorial Assistant.
 GOAL: Transform the provided input into a high-quality outcome based on the specific instructions below.
 
@@ -104,21 +119,26 @@ STRICT OUTPUT RULES:
 ${Object.entries(inputs).map(([key, val]) => `${key.toUpperCase()}: ${val}`).join('\n')}
 `.trim();
 
-  // If the user prompt is empty, we should still provide a basic trigger
-  const contents = userPrompt.trim() || "Please process the provided input data according to your instructions and brand voice.";
+    // If the user prompt is empty, we should still provide a basic trigger
+    const contents = userPrompt.trim() || "Please process the provided input data according to your instructions and brand voice.";
 
-  const response = await ai.models.generateContentStream({
-    model: "gemini-3-flash-preview",
-    contents,
-    config: {
-      systemInstruction,
-      temperature: skill.temperature || 0.7,
-    },
-  });
+    console.log("Streaming Gemini with model:", skill.model || "gemini-3-flash-preview");
+    const response = await ai.models.generateContentStream({
+      model: skill.model || "gemini-3-flash-preview",
+      contents,
+      config: {
+        systemInstruction,
+        temperature: skill.temperature || 0.7,
+      },
+    });
 
-  for await (const chunk of response) {
-    if (chunk.text) {
-      yield chunk.text;
+    for await (const chunk of response) {
+      if (chunk.text) {
+        yield chunk.text;
+      }
     }
+  } catch (error: any) {
+    console.error("Gemini API Stream Error:", error);
+    throw error;
   }
 }

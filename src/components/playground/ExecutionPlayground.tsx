@@ -64,9 +64,17 @@ export default function ExecutionPlayground({ skill, profiles, onBack, onSaveExe
           editorRef.current.innerHTML = html;
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Generation failed:', error);
-      const errorMsg = 'Generation failed. Please check your API key or connection.';
+      let errorMsg = 'Generation failed. Please check your API key or connection.';
+      
+      // If error has a message property, use it for more detail
+      if (error && error.message) {
+        errorMsg += ` Detail: ${error.message}`;
+      } else if (typeof error === 'string') {
+        errorMsg += ` Detail: ${error}`;
+      }
+      
       setOutput(errorMsg);
       if (editorRef.current) editorRef.current.innerText = errorMsg;
     } finally {
