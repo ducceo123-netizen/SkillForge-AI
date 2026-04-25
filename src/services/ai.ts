@@ -3,13 +3,13 @@ import { Skill, BrandProfile } from '../types';
 
 // Use VITE_ prefix for client-side environment variables in production (e.g. Vercel)
 // Use process.env for AI Studio environment
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '');
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '') || 'AIzaSyBnWfSD44xPIm3LXPf1UZaRZkHqCOjW0jo';
 
-if (!apiKey) {
-  console.warn("GEMINI_API_KEY is missing. AI features will not work. Please check your environment variables.");
+if (!apiKey || apiKey === 'AIzaSyBnWfSD44xPIm3LXPf1UZaRZkHqCOjW0jo') {
+  console.log("Using hardcoded API Key for testing. Remember to remove this before production.");
 }
 
-const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key' });
+const ai = new GoogleGenAI({ apiKey: apiKey });
 
 export async function generateSkillContent(
   skill: Skill, 
